@@ -1,0 +1,475 @@
+Django User Autnetication - GeekfforGeeks Tutorial -  24 Sep 2024
+https://github.com/Rascas-05/django_authentication.git
+
+In this article, we will explore the process of creating a secure and efficient user authentication system in Django, a high-level Python web framework. Building upon Django's built-in capabilities, we will cover user registration, login, and more, providing you with the knowledge and tools necessary to enhance the security and usability of your web applications. Whether you are a beginner or an experienced Django developer, this tutorial will empower you to implement a robust user authentication system that safeguards user data and delivers a seamless experience to your users.
+
+----------------------------
+PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> cd .venv\Scripts
+PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\.venv\Scripts> activate
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\.venv\Scripts> cd..
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\.venv> cd..
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> python --version
+Python 3.13.1
+VSCode->File->Save Workspace As.. accept suggested folder name.
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> pip list
+Package Version
+------- -------
+pip     24.3.1 
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> 
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> pip install django
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> pip list
+Package  Version
+-------- -------
+asgiref  3.8.1
+Django   5.1.4
+pip      24.3.1
+sqlparse 0.5.3
+tzdata   2024.2
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication> 
+-------------------------------
+
+User Authentication System in Django
+Step 1: Create the Django project and app by using the below command
+
+django-admin startproject core
+cd core
+python manage.py startapp authentication
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> python manage.py startapp authentication
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> 
+-------------------
+Step 2: Register app name in Installed_Apps in settings.py file.
+----core\settings.py----
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    "authentication", # App name
+]
+--------------------------
+Step 3: views.py
+- home(request): This function renders the "home.html" template when the user accesses the home page of the application.
+
+- login_page(request) : This function handles user login. If the HTTP request method is POST (i.e., the user is submitting a login form), it retrieves the entered username and password from the POST data. It checks if a user with the provided username exists. If not, it displays an error message and redirects the user back to the login page.
+
+- register_page(request) : This function handles user registration. If the HTTP request method is POST (i.e., the user is submitting a registration form), it retrieves the provided first name, last name, username, and password from the POST data. It checks if a user with the provided username already exists. If so, it displays an information message indicating that the username is taken and redirects the user back to :the registration page
+----authentication\views.py----
+# Import necessary modules and models
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from .models import *
+
+# Define a view function for the home page
+def home(request):
+    return render(request, 'home.html')
+
+# Define a view function for the login page
+def login_page(request):
+    # Check if the HTTP request method is POST (form submission)
+    if request.method == "POST":
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        # Check if a user with the provided username exists
+        if not User.objects.filter(username=username).exists():
+            # Display an error message if the username does not exist
+            messages.error(request, 'Invalid Username')
+            return redirect('/login/')
+        
+        # Authenticate the user with the provided username and password
+        user = authenticate(username=username, password=password)
+        
+        if user is None:
+            # Display an error message if authentication fails (invalid password)
+            messages.error(request, "Invalid Password")
+            return redirect('/login/')
+        else:
+            # Log in the user and redirect to the home page upon successful login
+            login(request, user)
+            return redirect('/home/')
+    
+    # Render the login page template (GET request)
+    return render(request, 'login.html')
+
+# Define a view function for the registration page
+def register_page(request):
+    # Check if the HTTP request method is POST (form submission)
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        # Check if a user with the provided username already exists
+        user = User.objects.filter(username=username)
+        
+        if user.exists():
+            # Display an information message if the username is taken
+            messages.info(request, "Username already taken!")
+            return redirect('/register/')
+        
+        # Create a new User object with the provided information
+        user = User.objects.create_user(
+            first_name=first_name,
+            last_name=last_name,
+            username=username
+        )
+        
+        # Set the user's password and save the user object
+        user.set_password(password)
+        user.save()
+        
+        # Display an information message indicating successful account creation
+        messages.info(request, "Account created Successfully!")
+        return redirect('/register/')
+    
+    # Render the registration page template (GET request)
+    return render(request, 'register.html')
+-------------------------------------
+Building a user authentication system is a key feature of most Django apps. To explore more advanced authentication techniques and beyond, the Complete Django Web Development Course - Basics to Advance is a great next step.
+------------------------------------------------
+Step 4: models.py
+
+The first line imports the models module from Django, which allows you to create and work with database models.
+
+- The second line imports the User model from django.contrib.auth.models. Django provides a built-in User model for managing user authentication and authorization. You can extend this model or use it as is to handle user-related data.
+----authentication\models.py----
+from django.db import models
+from django.contrib.auth.models import User
+---------------------------
+then we need to migrate models by using below write command
+
+python manage.py makemigrations
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> python manage.py makemigrations
+No changes detected
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> 
+python manage.py migrate 
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> python manage.py migrate     
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying sessions.0001_initial... OK
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> 
+--------------------
+then we need to create the super user by using below write command
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> python manage.py createsuperuser 
+Username (leave blank to use 'bfvdi'): Gabriel
+Email address: gabby@gmail.com.au
+Password: 
+Password (again):
+Superuser created successfully.
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> 
+Step 5:urls.py
+
+Imports the necessary modules for URL routing, views, admin interface, and serving static and media files.
+
+- Defines URL patterns for the home page, admin interface, login page, and registration page.
+- Serves media files (user-uploaded content) when in DEBUG mode.
+- Serves static files (CSS, JavaScript, etc.) using staticfiles_urlpatterns().
+- and also I commented the whole code for better understanding .
+
+Create new file 'urls.py' 
+----authentication\urls.py----
+# Import necessary modules
+from django.contrib import admin  # Django admin module
+from django.urls import path       # URL routing
+from authentication.views import *  # Import views from the authentication app
+from django.conf import settings   # Application settings
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns  # Static files serving
+
+# Define URL patterns
+urlpatterns = [
+    path('home/', home, name="recipes"),      # Home page
+    path("admin/", admin.site.urls),          # Admin interface
+    path('login/', login_page, name='login_page'),    # Login page
+    path('register/', register_page, name='register'),  # Registration page
+]
+
+# Serve media files if DEBUG is True (development mode)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Serve static files using staticfiles_urlpatterns
+urlpatterns += staticfiles_urlpatterns()
+-------------------------------------
+and also add some lines of code at the bottom of  settings.py file for avoid any type of error
+----core\settings.py----
+import os 
+STATIC_URL = '/static/'
+STATIC_ROOT= os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIR = {
+    os.path.join(BASE_DIR, 'public/static')
+}
+MEDIA_ROOT = os.path.join(BASE_DIR, 'public/static')
+MEDIA_URL = '/media/'
+--------------------------------
+Templates Folder
+create a templates folder under authentication folder:
+VSCode - right click 'authentication' and select 'New Folder'
+VSCode - right click 'templates' and select 'New File'
+Create file 'login.html'
+Step 6.1: login.html
+
+This is an HTML template for a login page.
+
+It uses Bootstrap 4.5.2 for styling, as indicated by the stylesheet link in the <head> section.
+The form is enclosed in a <div> with the class container and additional styles for layout.
+Inside the form:
+
+The GeeksforGeeks title is centered and colored green.
+A CSRF token is included for security (used to protect against cross-site request forgery attacks).
+Error/success messages are displayed using Bootstrap's alert component.
+There are input fields for the username and password, both marked as required.
+A link is provided to the registration page for users who do not have an account.
+A submit button is provided to submit the login form.
+This code creates a basic login page with fields for the username and password, along with error/success message handling and a link to the registration page for new users.
+-----templates\login.html----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Login form -->
+        <form class="col-6 mx-auto card p-3 shadow-lg" method="post" enctype="multipart/form-data">
+            <h1 style="text-align: center;"><span style="color: green;">GeeksforGeeks</span></h1>
+
+            {% csrf_token %}  <!-- CSRF token for security -->
+
+            <!-- Login heading -->
+            <h3>Login</h3>
+            <hr>
+
+            <!-- Display error/success messages -->
+            {% if messages %}
+            <div class="alert alert-primary" role="alert">
+                {% for message in messages %}
+                {{ message }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Username input field -->
+            <div class="form-group">
+                <label for="exampleInputEmail1">Username</label>
+                <input type="text" class="form-control" name="username" id="exampleInputEmail1" aria-describedby="emailHelp"
+                    placeholder="Enter username" required>
+            </div>
+
+            <!-- Password input field -->
+            <div class="form-group">
+                <label for="exampleInputPassword1">Password</label>
+                <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" required>
+            </div>
+
+            <!-- Link to registration page -->
+            <p>Don't have an account <a href="/register/">Register</a> </p>
+
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</body>
+</html>
+----------------------------
+
+Step 6.2: register.html
+
+This is an HTML template for a user registration form.
+
+It uses Bootstrap 4.5.2 for styling, as indicated by the stylesheet link in the <head> section.
+The form is enclosed in a <div> with the class container and additional styles for layout.
+Inside the form:
+
+A CSRF token is included for security (used to protect against cross-site request forgery attacks).
+Error/success messages are displayed using Bootstrap's alert component.
+Input fields are provided for the user's first name, last name, username, and password. All fields are marked as required.
+A link is provided to the login page for users who already have an account.
+A submit button is provided to submit the registration form.
+This code creates a basic registration form with fields for user information, error/success message handling, and a link to the login page for existing users.
+Create new file 'register.html'
+-----templates\register.html----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Registration Form</title>
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Registration form -->
+        <form class="col-6 mx-auto card p-3 shadow-lg" method="post" enctype="multipart/form-data">
+            {% csrf_token %}  <!-- CSRF token for security -->
+
+            <!-- Registration form heading -->
+            <h1 style="text-align: center;"><span style="color: green;">GeeksforGeeks</span></h1>
+            <h3>Register</h3>
+            <hr>
+
+            <!-- Display error/success messages -->
+            {% if messages %}
+            <div class="alert alert-primary" role="alert">
+                {% for message in messages %}
+                {{ message }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- First Name input field -->
+            <div class="form-group">
+                <label for="exampleInputEmail1">First name</label>
+                <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                    placeholder="Enter First name" name="first_name" required>
+            </div>
+
+            <!-- Last Name input field -->
+            <div class="form-group">
+                <label for="exampleInputEmail1">Last name</label>
+                <input type="text" name="last_name" class="form-control" id="exampleInputEmail1"
+                    aria-describedby="emailHelp" placeholder="Enter Last name" required>
+            </div>
+
+            <!-- Username input field -->
+            <div class="form-group">
+                <label for="exampleInputEmail1">Username</label>
+                <input type="text" class="form-control" name="username" id="exampleInputEmail1"
+                    aria-describedby="emailHelp" placeholder="Enter email" required>
+            </div>
+
+            <!-- Password input field -->
+            <div class="form-group">
+                <label for="exampleInputPassword1">Password</label>
+                <input type="password" class="form-control" name="password" id="exampleInputPassword1"
+                    placeholder="Password" required>
+            </div>
+
+            <!-- Link to login page for users who already have an account -->
+            <p>Already have an account <a href="/login/">Login</a> </p>
+
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</body>
+</html>
+-----------------------------------------
+
+Step 6.3: home.html
+
+This is an HTML template for a welcoming webpage.
+It includes a <title> tag with inline CSS to set the title text color to green.
+Inside the <style> block:
+
+The .container class styles the main content container, centering it on the page and adding a white background with a subtle shadow.
+The h1 tag styles the page heading in green and makes it bold.
+The img tag styles the animated GIF to be 60% of its original width.
+Inside the <body> element:
+
+The page content is placed within a <div> element with the class container.
+The page heading, "Welcome to Geeksforgeeks ????," is displayed in a green color and bold.
+An animated GIF is included using the <img> tag. The source URL for the GIF is set to "https://i.ibb.co/RNB6jpM/welcome.gif," which displays a cartoon character welcoming the user.
+This code creates a simple webpage that welcomes users to Geeksforgeeks with a friendly cartoon GIF and styling for a clean and centered layout.
+
+Create new file 'home.html'
+-----templates\home.html-----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title style="color: green;">Welcome to Geeksforgeeks ????</title>
+    <style>
+        .container {
+            text-align: center;
+            margin: 100px auto;
+            max-width: 500px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: green;
+            font-weight: bold;
+        }
+
+        img {
+            width: 60%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Page heading -->
+        <h1>Welcome to Geeksforgeeks ????</h1>
+        
+        <!-- Animated GIF -->
+        <!-- Use "welcome.gif" as the source for the GIF -->
+        <img src="https://i.ibb.co/RNB6jpM/welcome.gif" alt="Welcome Cartoon">
+    </div>
+</body>
+</html>
+---------------------------------------
+Step 7: Now run the command
+
+python manage.py runserver
+(.venv) PS C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core> python manage.py runserver   
+Watching for file changes with StatReloader
+Performing system checks...
+
+System check identified no issues (0 silenced).
+January 01, 2025 - 12:42:27
+Django version 5.1.4, using settings 'core.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+
+[01/Jan/2025 12:42:56] "GET / HTTP/1.1" 200 12068
+Not Found: /favicon.ico
+[01/Jan/2025 12:43:00] "GET /favicon.ico HTTP/1.1" 404 2206
+---Chrome browser----
+http://127.0.0.1:8000/
+The install worked successfully! Congratulations!
+View release notes for Django 5.1
+
+You are seeing this page because DEBUG=True is in your settings file and you have not configured any URLs.
+
+Django
+-------Terminal Error---------------------
+  File "C:\Users\bfvdi\Documents\AppDevelopment\VSCODE\Projects\Django\GeeksForGeeks\User_Athentication\django_authentication\core\core\urls.py", line 34, in <module>
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+                   ^^^^^^
+NameError: name 'static' is not defined
+----Try the following----
+Create a static folder under django_authentication\authentication folder
+
+
+
